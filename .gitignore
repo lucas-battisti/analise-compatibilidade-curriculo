@@ -1,1 +1,3 @@
 app/.env.example
+.venv
+app/__pycache__
