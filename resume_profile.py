@@ -13,8 +13,10 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from dotenv import load_dotenv
+
 load_dotenv(dotenv_path="app/.env")
 key = os.getenv("OPENAI_API_KEY")
+
 
 class PersonalInfo(BaseModel):
     name: Optional[str]
@@ -75,8 +77,8 @@ def create_profile(pdf_file: UploadFile) -> dict:
 
     # Criando prompt
     prompt_template = PromptTemplate(
-    input_variables=["resume_text"],
-    template="""
+        input_variables=["resume_text"],
+        template="""
 You are an expert in resume parsing.
 
 Based on the resume text below, extract a structured profile in JSON format with the following schema.
@@ -141,8 +143,8 @@ Expected schema and data types:
 
 Resume Text:
 {resume_text}
-"""
-)
+""",
+    )
     # Criando o LLM
     llm = ChatOpenAI(api_key=key, temperature=0, model_name="gpt-4")
     chain = LLMChain(llm=llm, prompt=prompt_template)
@@ -152,24 +154,6 @@ Resume Text:
 
     # Forçando a tipagem (JSON dict e tipagem dos atributos)
     json_response = json.loads(response)
-    return json.dumps(ResumeProfile(**json_response).model_dump(),
-                      ensure_ascii=False) # Isso manterá os acentos e outros caracteres UTF-8
-
-######## TESTE ###########
-
-from dotenv import load_dotenv
-from fastapi import FastAPI, File, UploadFile, Form
-from fastapi.responses import JSONResponse
-
-load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-app = FastAPI()
-
-
-@app.post("/create_profile_teste")
-async def create_profile_teste(
-    arquivo_pdf: UploadFile = File(...)
-):
-    
-    return create_profile(arquivo_pdf)
+    return json.dumps(
+        ResumeProfile(**json_response).model_dump(), ensure_ascii=False
+    )  # Isso manterá os acentos e outros caracteres UTF-8
