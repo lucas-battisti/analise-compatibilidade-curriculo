@@ -12,8 +12,10 @@ from pydantic import BaseModel
 import numpy as np
 
 from dotenv import load_dotenv
+
 load_dotenv(dotenv_path="app/.env")
 key = os.getenv("OPENAI_API_KEY")
+
 
 class EducationEvaluation(BaseModel):
     degree_level: str
@@ -21,14 +23,14 @@ class EducationEvaluation(BaseModel):
     correspondence: int
     completed: Optional[bool]
 
+
 def evaluate_education_requirements(
-    requirement_texts: List[dict],
-    profile: dict
+    requirement_texts: List[dict], profile: dict
 ) -> List[dict]:
 
     prompt_template = PromptTemplate(
-    input_variables=["requirements", "education_history"],
-    template="""
+        input_variables=["requirements", "education_history"],
+        template="""
 You are an assistant that analyzes how well a candidate's educational background matches a list of job education requirements.
 
 Input:
@@ -59,8 +61,8 @@ Requirements:
 
 Candidate education history:
 {education_history}
-"""
-)
+""",
+    )
 
     # Criando o LLM
     llm = ChatOpenAI(api_key=key, temperature=0, model_name="gpt-4")
@@ -75,12 +77,13 @@ Candidate education history:
     return json.loads(response)
 
 
-
 def compute_education(info_dict: List[dict]):
-    score_array = np.array([])      # Guarda os escores finais por item
-    req_weights = np.array([])      # Guarda os pesos conforme seja requisito (0.8) ou diferencial (0.2)
-    pontos_fortes_list = []         # Lista de pontos fortes da formação acadêmica
-    pontos_fracos_list = []         # Lista de pontos fracos da formação acadêmica
+    score_array = np.array([])  # Guarda os escores finais por item
+    req_weights = np.array(
+        []
+    )  # Guarda os pesos conforme seja requisito (0.8) ou diferencial (0.2)
+    pontos_fortes_list = []  # Lista de pontos fortes da formação acadêmica
+    pontos_fracos_list = []  # Lista de pontos fracos da formação acadêmica
 
     for i in info_dict:
 
@@ -91,17 +94,23 @@ def compute_education(info_dict: List[dict]):
             req_weights = np.append(req_weights, 0.8)
         else:
             req_weights = np.append(req_weights, 0.2)
-        
+
         # Se não possui a formação requerida
         if i["correspondence"] == 1:
-            pontos_fracos_list.append("Candidato não tem a formação de {} requerida".format(i["degree_level"]))
+            pontos_fracos_list.append(
+                "Candidato não tem a formação de {} requerida".format(i["degree_level"])
+            )
             a = 3  # escore base mínimo
 
         # Se não completou a formação
         elif i["completed"] == False:
-            pontos_fracos_list.append("Candidato não completou a formação de {} requerida".format(i["degree_level"]))
+            pontos_fracos_list.append(
+                "Candidato não completou a formação de {} requerida".format(
+                    i["degree_level"]
+                )
+            )
             b += -2  # penalidade
-          
+
         # Formação parcialmente compatível
         if i["correspondence"] == 2:
             a = 6  # escore base intermediário
@@ -109,17 +118,14 @@ def compute_education(info_dict: List[dict]):
         # Formação muito compatível
         if i["correspondence"] == 3:
             a = 9  # escore base máximo
-            pontos_fortes_list.append("O candidato possui uma formação que se encaixa bem nas exigências")
+            pontos_fortes_list.append(
+                "O candidato possui uma formação que se encaixa bem nas exigências"
+            )
 
         # Soma escore base e bônus/penalidade, adiciona ao array
         score_array = np.append(score_array, (a + b))
 
     # Cálculo do escore final ponderado pelos pesos dos requisitos
     score = np.average(score_array, weights=req_weights)
-    
+
     return score, pontos_fortes_list, pontos_fracos_list
-
-
-        
-
-

@@ -11,8 +11,10 @@ from typing import List
 import numpy as np
 
 from dotenv import load_dotenv
+
 load_dotenv(dotenv_path="app/.env")
 key = os.getenv("OPENAI_API_KEY")
+
 
 def generate_interview_questions(profile: dict, job_description: str) -> List[str]:
     prompt_template = PromptTemplate(
@@ -44,7 +46,7 @@ Job description:
 
 Resume profile (structured JSON):
 {profile}
-"""
+""",
     )
 
     # Criando o LLM
@@ -53,8 +55,7 @@ Resume profile (structured JSON):
 
     # Executando o LLM
     response = chain.run(
-        job_description=job_description,
-        profile=json.dumps(profile, ensure_ascii=False)
+        job_description=job_description, profile=json.dumps(profile, ensure_ascii=False)
     )
 
-    return eval(response) # Transforma em lista
+    return eval(response)  # Transforma em lista

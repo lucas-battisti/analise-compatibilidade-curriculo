@@ -12,8 +12,10 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from dotenv import load_dotenv
+
 load_dotenv(dotenv_path="app/.env")
 key = os.getenv("OPENAI_API_KEY")
+
 
 class ExperienceEvaluation(BaseModel):
     name: str
@@ -22,14 +24,14 @@ class ExperienceEvaluation(BaseModel):
     duration_required: Optional[bool]
     relevant_results: Optional[bool]
 
+
 def evaluate_experience_requirements(
-    requirement_texts: List[dict],
-    profile: dict
+    requirement_texts: List[dict], profile: dict
 ) -> List[dict]:
 
     prompt_template = PromptTemplate(
-    input_variables=["requirements", "profile"],
-    template="""
+        input_variables=["requirements", "profile"],
+        template="""
 You are an assistant that analyzes how well a candidate's work experience matches a list of job experience requirements.
 
 Inputs:
@@ -73,8 +75,8 @@ Requirements:
 
 Candidate complete profile:
 {profile}
-"""
-)
+""",
+    )
 
     # Criando o LLM
     llm = ChatOpenAI(api_key=key, temperature=0, model_name="gpt-4")
@@ -88,11 +90,12 @@ Candidate complete profile:
 
     return json.loads(response)
 
+
 def compute_experience(info_dict: List[dict]):
-    score_array = np.array([])      # Guarda os escores finais por item
-    req_weights = np.array([])      # Guarda os pesos conforme seja requisito ou diferencial
-    pontos_fortes_list = []         # Lista de pontos fortes nas experiências
-    pontos_fracos_list = []         # Lista de pontos fracos nas experiências
+    score_array = np.array([])  # Guarda os escores finais por item
+    req_weights = np.array([])  # Guarda os pesos conforme seja requisito ou diferencial
+    pontos_fortes_list = []  # Lista de pontos fortes nas experiências
+    pontos_fracos_list = []  # Lista de pontos fracos nas experiências
 
     for i in info_dict:
 
@@ -103,37 +106,47 @@ def compute_experience(info_dict: List[dict]):
             req_weights = np.append(req_weights, 0.8)
         else:
             req_weights = np.append(req_weights, 0.2)
-        
+
         # Se o candidato não tem a experiência
         if i["correspondence"] == 1:
-            pontos_fracos_list.append("Candidato não possui experiência de {}".format(i["name"]))
+            pontos_fracos_list.append(
+                "Candidato não possui experiência de {}".format(i["name"])
+            )
             a = 3  # escore base mínimo
 
         else:
             # Se não atinge o tempo mínimo exigido
             if i["duration_required"] == False:
-                pontos_fracos_list.append("O candidato não possui o tempo mínimo de experiência exigido")
+                pontos_fracos_list.append(
+                    "O candidato não possui o tempo mínimo de experiência exigido"
+                )
                 b += -2  # penalidade
 
             # Se há resultados relevantes nas experiências
             if i["relevant_results"] == True:
-                pontos_fortes_list.append("As experiências do candidato evidenciam contribuições significativas e relevantes")
+                pontos_fortes_list.append(
+                    "As experiências do candidato evidenciam contribuições significativas e relevantes"
+                )
                 b += 1  # bônus positivo
 
         # Nível moderado de correspondência com a vaga
         if i["correspondence"] == 2:
-            pontos_fortes_list.append("O candidato possui experiência com {}".format(i["name"]))
+            pontos_fortes_list.append(
+                "O candidato possui experiência com {}".format(i["name"])
+            )
             a = 6  # escore base intermediário
 
         # Nível alto de correspondência com a vaga
         if i["correspondence"] == 3:
             a = 9  # escore base máximo
-            pontos_fortes_list.append("O candidato possui uma experiência muito alinhada com a vaga")
+            pontos_fortes_list.append(
+                "O candidato possui uma experiência muito alinhada com a vaga"
+            )
 
         # Soma escore base e bônus, armazena
         score_array = np.append(score_array, (a + b))
 
     # Cálculo do escore final ponderado pelos pesos dos requisitos
     score = np.average(score_array, weights=req_weights)
-    
+
     return score, pontos_fortes_list, pontos_fracos_list
