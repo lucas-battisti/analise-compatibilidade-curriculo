@@ -99,7 +99,7 @@ O score geral é calculado como uma média ponderada das categorias:
 
 Cada item recebe uma nota baseada na correspondência (Alta, Razoável ou Nenhuma), com bônus ou penalidades conforme requisitos atendidos ou não.
 
-## 📋 Saídas do Sistema
+## Saídas do Sistema
 
 O endpoint `/analisar_curriculo` retorna:
 
